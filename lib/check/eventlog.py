@@ -46,7 +46,7 @@ async def check_eventlog(
     items = []
     for ec in ec:
         item = {
-            'name': ec,
+            'name': str(ec),
             'Count': ct[ec],
         }
         if ec in last:
