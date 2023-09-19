@@ -1,9 +1,17 @@
+import os
+import msgpack
 from aiowmi.query import Query
-from collections import Counter, defaultdict
+from collections import Counter
+from datetime import datetime, timedelta
 from libprobe.asset import Asset
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 
 
+EVENTLOG_LAST_RUN_FN = os.getenv(
+    'EVENTLOG_LAST_RUN_FN', '/data/eventlog_last_run.mp')
+if not os.path.exists(EVENTLOG_LAST_RUN_FN):
+    with open(EVENTLOG_LAST_RUN_FN, 'wb') as fp:
+        msgpack.pack({}, fp)
 TYPE_NAME = 'eventCode'
 
 EVENT_TYPE = {
@@ -25,11 +33,25 @@ async def check_eventlog(
             TYPE_NAME: []
         }
 
+    now = datetime.now()
+    with open(EVENTLOG_LAST_RUN_FN, 'rb') as fp:
+        last_run_times = msgpack.unpack(fp, strict_map_key=False)
+    if asset.id in last_run_times:
+        last_run_time = last_run_times[asset.id]
+        after = datetime.utcfromtimestamp(last_run_time)
+    else:
+        after = now - timedelta(seconds=60)
+
+    last_run_times[asset.id] = int(now.timestamp())
+    with open(EVENTLOG_LAST_RUN_FN, 'wb') as fp:
+        msgpack.pack(last_run_times, fp)
+
     query = Query(f"""
         SELECT
         EventCode, EventType, Logfile, Message, SourceName, TimeGenerated
         FROM Win32_NTLogEvent
-        WHERE {' OR '.join(f'EventCode = {ec}' for ec in ec)}
+        WHERE {' OR '.join(f'EventCode = {ec}' for ec in ec)} AND
+        TimeWritten > "{after.strftime('%Y%m%d%H%M%S.000000-000')}"
     """)
     conn, service = await wmiconn(asset, asset_config, check_config)
     try:
