@@ -86,5 +86,5 @@ async def check_eventlog(
 
         items.append(item)
     return {
-        TYPE_NAME: [items]
+        TYPE_NAME: items
     }
