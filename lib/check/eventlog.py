@@ -36,23 +36,22 @@ async def check_eventlog(
             TYPE_NAME: []
         }
 
-    now = datetime.now()
+    # By shifting the time windows by one minute to the past, we allow the
+    # target machine a little time drift from the probe and prevent missing
+    # events written at the same second as we query.
+    end = datetime.now() - timedelta(seconds=60)
     if asset.id in last_run_times:
-        last_run_time = last_run_times[asset.id]
-        after = datetime.utcfromtimestamp(last_run_time)
+        last_end = last_run_times[asset.id]
+        start = datetime.utcfromtimestamp(last_end)
     else:
-        after = now - timedelta(seconds=60)
-
-    last_run_times[asset.id] = int(now.timestamp())
-    with open(EVENTLOG_LAST_RUN_FN, 'wb') as fp:
-        msgpack.pack(last_run_times, fp)
+        start = end - timedelta(seconds=60)
 
     query = Query(f"""
         SELECT
         EventCode, EventType, Logfile, Message, SourceName, TimeGenerated
         FROM Win32_NTLogEvent
-        WHERE TimeWritten > "{after.strftime('%Y%m%d%H%M%S.000000-000')}" AND
-        TimeWritten <= "{now.strftime('%Y%m%d%H%M%S.000000-000')}" AND
+        WHERE TimeWritten > "{start.strftime('%Y%m%d%H%M%S.000000-000')}" AND
+        TimeWritten <= "{end.strftime('%Y%m%d%H%M%S.000000-000')}" AND
         ({' OR '.join(f'EventCode = {ec}' for ec in ec)})
     """)
     conn, service = await wmiconn(asset, asset_config, check_config)
@@ -60,6 +59,11 @@ async def check_eventlog(
         rows = await wmiquery(conn, service, query)
     finally:
         wmiclose(conn, service)
+
+    # success, update and write last_run_times
+    last_run_times[asset.id] = int(end.timestamp())
+    with open(EVENTLOG_LAST_RUN_FN, 'wb') as fp:
+        msgpack.pack(last_run_times, fp)
 
     ct = Counter()
     last = {}
