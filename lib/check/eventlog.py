@@ -39,7 +39,7 @@ async def check_eventlog(
     # By shifting the time window by one minute to the past, we allow the
     # target machine a little time drift from the probe and prevent missing
     # events written at the same second as we query.
-    end = datetime.now() - timedelta(seconds=60)
+    end = datetime.utcnow() - timedelta(seconds=60)
     if asset.id in last_run_times:
         last_end = last_run_times[asset.id]
         start = datetime.utcfromtimestamp(last_end)
