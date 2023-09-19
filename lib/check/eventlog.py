@@ -52,6 +52,7 @@ async def check_eventlog(
         EventCode, EventType, Logfile, Message, SourceName, TimeGenerated
         FROM Win32_NTLogEvent
         WHERE TimeWritten > "{after.strftime('%Y%m%d%H%M%S.000000-000')}" AND
+        TimeWritten <= "{now.strftime('%Y%m%d%H%M%S.000000-000')}" AND
         ({' OR '.join(f'EventCode = {ec}' for ec in ec)})
     """)
     conn, service = await wmiconn(asset, asset_config, check_config)
