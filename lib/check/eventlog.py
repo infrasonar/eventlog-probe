@@ -12,6 +12,9 @@ EVENTLOG_LAST_RUN_FN = os.getenv(
 if not os.path.exists(EVENTLOG_LAST_RUN_FN):
     with open(EVENTLOG_LAST_RUN_FN, 'wb') as fp:
         msgpack.pack({}, fp)
+with open(EVENTLOG_LAST_RUN_FN, 'rb') as fp:
+    last_run_times = msgpack.unpack(fp, strict_map_key=False)
+
 TYPE_NAME = 'eventCode'
 
 EVENT_TYPE = {
@@ -34,8 +37,6 @@ async def check_eventlog(
         }
 
     now = datetime.now()
-    with open(EVENTLOG_LAST_RUN_FN, 'rb') as fp:
-        last_run_times = msgpack.unpack(fp, strict_map_key=False)
     if asset.id in last_run_times:
         last_run_time = last_run_times[asset.id]
         after = datetime.utcfromtimestamp(last_run_time)
@@ -50,8 +51,8 @@ async def check_eventlog(
         SELECT
         EventCode, EventType, Logfile, Message, SourceName, TimeGenerated
         FROM Win32_NTLogEvent
-        WHERE {' OR '.join(f'EventCode = {ec}' for ec in ec)} AND
-        TimeWritten > "{after.strftime('%Y%m%d%H%M%S.000000-000')}"
+        WHERE TimeWritten > "{after.strftime('%Y%m%d%H%M%S.000000-000')}" AND
+        ({' OR '.join(f'EventCode = {ec}' for ec in ec)})
     """)
     conn, service = await wmiconn(asset, asset_config, check_config)
     try:
