@@ -36,7 +36,7 @@ async def check_eventlog(
             TYPE_NAME: []
         }
 
-    # By shifting the time windows by one minute to the past, we allow the
+    # By shifting the time window by one minute to the past, we allow the
     # target machine a little time drift from the probe and prevent missing
     # events written at the same second as we query.
     end = datetime.now() - timedelta(seconds=60)
