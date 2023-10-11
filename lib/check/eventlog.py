@@ -1,5 +1,7 @@
 import os
 import msgpack
+import re
+import logging
 from aiowmi.query import Query
 from collections import Counter
 from datetime import datetime, timedelta
@@ -31,6 +33,7 @@ async def check_eventlog(
         check_config: dict) -> dict:
     custom = set(check_config.get('eventCodes', []))
     include_security = check_config.get('securityEvents', True)
+    source = check_config.get('matchSource', '')
     event_code, security = [], []
     if include_security:
         sec_ec = set(SECUTIRY)
@@ -38,6 +41,12 @@ async def check_eventlog(
     else:
         sec_ec = set()
         state = {'eventCode': event_code}
+
+    try:
+        re_source = re.compile(source, flags=re.IGNORECASE)
+    except Exception as e:
+        logging.error(f'Failed to compile source match: {e}')
+        re_source = re.compile('')
 
     complete = tuple(custom) + tuple(sec_ec)
     if not complete:
@@ -72,30 +81,39 @@ async def check_eventlog(
     with open(EVENTLOG_LAST_RUN_FN, 'wb') as fp:
         msgpack.pack(last_run_times, fp)
 
-    ct = Counter()
-    last = {}
+    custom_ct, security_ct = Counter(), Counter()
+    custom_last, security_last = {}, {}
+
     for row in sorted(rows, key=lambda row: row['TimeGenerated']):
-        ct[row['EventCode']] += 1
-        last[row['EventCode']] = row
+        ec = row['EventCode']
 
-    for ec in complete:
-        item = {
-            'name': str(ec),
-            'Count': ct[ec],
-            'Description': EVENTS.get(ec),
-        }
-        if ec in last:
-            item['LastEventType'] = EVENT_TYPE.get(last[ec]['EventType'])
-            item['LastLogfile'] = last[ec]['Logfile']
-            item['LastMessage'] = msg = last[ec]['Message']
-            item['LastSourceName'] = last[ec]['SourceName']
-            item['LastTimeGenerated'] = int(last[ec]['TimeGenerated'])
-            # Overwrite description
-            item['Description'] = msg.replace('\r\n', '\n').split('\n', 1)[0]
+        if ec in custom and re_source.match(row['SourceName']):
+            custom_ct[ec] += 1
+            custom_last[ec] = row
 
-        if ec in custom:
-            event_code.append(item)
-        if ec in sec_ec:
-            security.append(item)
+        if ec in sec_ec and sec_ec[ec][1].match(row['SourceName']):
+            security_ct[ec] += 1
+            security_last[ec] = row
+
+    for (ct, last, items, codes) in (
+        (custom_ct, custom_last, event_code, custom),
+        (security_ct, security_last, security, sec_ec),
+    ):
+        for ec in codes:
+            item = {
+                'name': str(ec),
+                'Count': ct[ec],
+                'Description': EVENTS.get(ec, (None, None))[0],
+            }
+            if ec in last:
+                item['LastEventType'] = EVENT_TYPE.get(last[ec]['EventType'])
+                item['LastLogfile'] = last[ec]['Logfile']
+                item['LastMessage'] = msg = last[ec]['Message']
+                item['LastSourceName'] = last[ec]['SourceName']
+                item['LastTimeGenerated'] = int(last[ec]['TimeGenerated'])
+                item['Description'] = \
+                    msg.replace('\r\n', '\n').split('\n', 1).rstrip('.')[0]
+
+            items.append(item)
 
     return state
