@@ -5,7 +5,7 @@ SOURCE_NONE = re.compile('', re.IGNORECASE)
 SOURCE_SEC = re.compile('Microsoft-Windows-Security-Auditing', re.IGNORECASE)
 
 
-SECUTIRY = {
+SECURITY = {
     1102: ('Audit log was cleared. This can relate to a potential attack', SOURCE_NONE),  # nopep8
     4616: ('System time was changed', SOURCE_NONE),  # nopep8
     4624: ('Successful account log on', SOURCE_SEC),  # nopep8
@@ -1516,10 +1516,10 @@ EVENTS = {}
 EVENTS.update(WINDOWS)
 EVENTS.update(EXCHANGE)
 EVENTS.update(SQL)
-EVENTS.update(SECUTIRY)  # Use these descriptions over windows
+EVENTS.update(SECURITY)  # Use these descriptions over windows
 
 if __name__ == '__main__':
-    overlap = set(SECUTIRY) & set(WINDOWS)
+    overlap = set(SECURITY) & set(WINDOWS)
     for evid in overlap:
-        if SECUTIRY[evid] != WINDOWS[evid]:
-            print(f'{evid}: {SECUTIRY[evid]} != {WINDOWS[evid]}')
+        if SECURITY[evid] != WINDOWS[evid]:
+            print(f'{evid}: {SECURITY[evid]} != {WINDOWS[evid]}')
