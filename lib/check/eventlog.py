@@ -81,39 +81,43 @@ async def check_eventlog(
     with open(EVENTLOG_LAST_RUN_FN, 'wb') as fp:
         msgpack.pack(last_run_times, fp)
 
-    custom_ct, security_ct = Counter(), Counter()
-    custom_last, security_last = {}, {}
+    try:
+        custom_ct, security_ct = Counter(), Counter()
+        custom_last, security_last = {}, {}
 
-    for row in sorted(rows, key=lambda row: row['TimeGenerated']):
-        ec = row['EventCode']
+        for row in sorted(rows, key=lambda row: row['TimeGenerated']):
+            ec = row['EventCode']
 
-        if ec in custom and re_source.match(row['SourceName']):
-            custom_ct[ec] += 1
-            custom_last[ec] = row
+            if ec in custom and re_source.match(row['SourceName']):
+                custom_ct[ec] += 1
+                custom_last[ec] = row
 
-        if ec in sec_ec and sec_ec[ec][1].match(row['SourceName']):
-            security_ct[ec] += 1
-            security_last[ec] = row
+            if ec in sec_ec and sec_ec[ec][1].match(row['SourceName']):
+                security_ct[ec] += 1
+                security_last[ec] = row
 
-    for (ct, last, items, codes) in (
-        (custom_ct, custom_last, event_code, custom),
-        (security_ct, security_last, security, sec_ec),
-    ):
-        for ec in codes:
-            item = {
-                'name': str(ec),
-                'Count': ct[ec],
-                'Description': EVENTS.get(ec, (None, None))[0],
-            }
-            if ec in last:
-                item['LastEventType'] = EVENT_TYPE.get(last[ec]['EventType'])
-                item['LastLogfile'] = last[ec]['Logfile']
-                item['LastMessage'] = msg = last[ec]['Message']
-                item['LastSourceName'] = last[ec]['SourceName']
-                item['LastTimeGenerated'] = int(last[ec]['TimeGenerated'])
-                item['Description'] = \
-                    msg.replace('\r\n', '\n').split('\n', 1).rstrip('.')[0]
+        for (ct, last, items, codes) in (
+            (custom_ct, custom_last, event_code, custom),
+            (security_ct, security_last, security, sec_ec),
+        ):
+            for ec in codes:
+                item = {
+                    'name': str(ec),
+                    'Count': ct[ec],
+                    'Description': EVENTS.get(ec, (None, None))[0],
+                }
+                if ec in last:
+                    item['LastEventType'] = EVENT_TYPE.get(last[ec]['EventType'])
+                    item['LastLogfile'] = last[ec]['Logfile']
+                    item['LastMessage'] = msg = last[ec]['Message']
+                    item['LastSourceName'] = last[ec]['SourceName']
+                    item['LastTimeGenerated'] = int(last[ec]['TimeGenerated'])
+                    item['Description'] = \
+                        msg.replace('\r\n', '\n').split('\n', 1).rstrip('.')[0]
 
-            items.append(item)
+                items.append(item)
+    except Exception:
+        logging.exception('')
+        raise
 
     return state
