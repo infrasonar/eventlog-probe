@@ -1,7 +1,7 @@
 import re
 
 
-SOURCE_NONE = re.compine('', re.IGNORECASE)
+SOURCE_NONE = re.compile('', re.IGNORECASE)
 SOURCE_SEC = re.compile('Microsoft-Windows-Security-Auditing', re.IGNORECASE)
 
 
