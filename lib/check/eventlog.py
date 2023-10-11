@@ -100,15 +100,17 @@ async def check_eventlog(
         (security_ct, security_last, security, sec_ec),
     ):
         for ec in codes:
+            desc = EVENTS.get(ec, (None, None))[0]
             item = {
                 'name': str(ec),
                 'Count': ct[ec],
-                'Description': EVENTS.get(ec, (None, None))[0],
+                'Description': desc,
             }
             if ec in last:
+                msg = last[ec]['Message'].strip() or desc or ''
                 item['LastEventType'] = EVENT_TYPE.get(last[ec]['EventType'])
                 item['LastLogfile'] = last[ec]['Logfile']
-                item['LastMessage'] = msg = last[ec]['Message']
+                item['LastMessage'] = msg
                 item['LastSourceName'] = last[ec]['SourceName']
                 item['LastTimeGenerated'] = int(last[ec]['TimeGenerated'])
                 item['Description'] = \
