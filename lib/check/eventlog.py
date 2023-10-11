@@ -91,7 +91,7 @@ async def check_eventlog(
             item['LastSourceName'] = last[ec]['SourceName']
             item['LastTimeGenerated'] = int(last[ec]['TimeGenerated'])
             # Overwrite description
-            item['Description'] = msg.split('\n', 1)[0]
+            item['Description'] = msg.replace('\r\n', '\n').split('\n', 1)[0]
 
         if ec in custom:
             event_code.append(item)
