@@ -12,6 +12,7 @@ from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..events import EVENTS, SECURITY
 
 
+MAX_INTERVAL_PAST = 5  # not futher in the pas then X intervals
 EVENTLOG_LAST_RUN_FN = os.getenv(
     'EVENTLOG_LAST_RUN_FN', '/data/eventlog_last_run.mp')
 if not os.path.exists(EVENTLOG_LAST_RUN_FN):
@@ -63,7 +64,15 @@ class CheckEventlog(Check):
         end = datetime.now(timezone.utc) - timedelta(seconds=60)
         if asset.id in last_run_times:
             last_end = last_run_times[asset.id]
+            interval = config.get('_interval', 300)
+            maxdiff = timedelta(seconds=interval * MAX_INTERVAL_PAST)
+
             start = datetime.fromtimestamp(last_end, tz=timezone.utc)
+            if end - start > maxdiff:
+                new_start = end - maxdiff
+                logging.warning(
+                    f'Last check too old: {start}, use {new_start}; {asset}')
+                start = new_start
         else:
             start = end - timedelta(seconds=60)
 
