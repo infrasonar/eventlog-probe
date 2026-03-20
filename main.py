@@ -8,5 +8,5 @@ if __name__ == '__main__':
         CheckEventlog,
     )
 
-    probe = Probe("eventlog", version, checks)
+    probe = Probe("eventlog", version, checks, loggers=('aiowmi',))
     probe.start()
