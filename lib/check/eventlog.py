@@ -7,7 +7,6 @@ from collections import Counter
 from datetime import datetime, timedelta, timezone
 from libprobe.asset import Asset
 from libprobe.check import Check
-from typing import Dict
 from ..wmiquery import wmiconn, wmiquery, wmiclose
 from ..events import EVENTS, SECURITY
 
@@ -19,7 +18,7 @@ if not os.path.exists(EVENTLOG_LAST_RUN_FN):
     with open(EVENTLOG_LAST_RUN_FN, 'wb') as fp:
         msgpack.pack({}, fp)
 with open(EVENTLOG_LAST_RUN_FN, 'rb') as fp:
-    last_run_times: Dict[int, int] =\
+    last_run_times: dict[int, int] =\
          msgpack.unpack(fp, strict_map_key=False)  # type: ignore
 
 EVENT_TYPE = {

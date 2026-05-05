@@ -10,7 +10,6 @@ from aiowmi.connection import Connection
 from aiowmi.connection import Protocol as Service
 from aiowmi.exceptions import WbemExInvalidClass, WbemExInvalidNamespace
 from aiowmi.kerberos.cache import KerberosCache
-from typing import List, Tuple, Dict, Optional
 from .kdc import get_kdc
 from . import DOCS_URL
 
@@ -30,7 +29,7 @@ AUTH_KERBEROS = 'Kerberos'
 async def wmiconn(
         asset: Asset,
         local_config: dict,
-        config: dict) -> Tuple[Connection, Service]:
+        config: dict) -> tuple[Connection, Service]:
     address = config.get('address')
     if not address:
         address = asset.name
@@ -119,8 +118,8 @@ async def wmiquery(
         conn: Connection,
         service: Service,
         query: Query,
-        refs: Optional[dict] = None,
-        timeout: int = QUERY_TIMEOUT) -> List[dict]:
+        refs: dict | None = None,
+        timeout: int = QUERY_TIMEOUT) -> list[dict]:
     rows = []
 
     try:
